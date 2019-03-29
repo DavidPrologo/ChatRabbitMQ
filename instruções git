@@ -1,0 +1,8 @@
+1. Abrir o terminal
+2. Navegar até a pasta C:/laragon/www/malu/ ( com o comando: cd c:/laragon/www/malu/)
+3. Rodar o comando git status, depois conferir os arquivos modificados, adicionados ou deletados
+4. Se tudo estiver nos conformes, rodar o comando: git add . (esse comando adiciona todas as
+   alterações do projeto no stage área)
+5. Rodar o comando: git commit –m “Titulo do commit, por exemplo: Corrigindo bug no titulo”
+  (esse comando adiciona os arquivos da stage área em um commit)
+6. Depois rodar o comando para enviar o(s) commits para o servidor com o comando: git push

@@ -36,7 +36,7 @@ Para criar um novo grupo, o usuario pode digitar na linha de comando do chat o s
 nome do comando `newGroup` seguido do nome do grupo que se deseja criar. Exemplo de criacao de um grupo chamado "amigos":
 
 ```
-@marciocosta>> !addGroup amigos
+@marciocosta>> !addGroup amigos *** SOMENTE CRIA O GRUPO APARTIR APOS SELECAO DE OUTRO USUARIO  ***
 @marciocosta>>
 ```
 
@@ -55,7 +55,7 @@ fila a um exchange usando um metodo de bind. Exemplo onde se adiciona os usuári
 "joaosantos" ao grupo amigos:
 
 ```
-@marciocosta>> !addUser joaosantos amigos
+@marciocosta>> !addUser joaosantos amigos *** TEM QUE ADICIONAR O USER ANTES DE TUDO ***
 @marciocosta>> !addUser marciocosta amigos
 @marciocosta>>
 ```
