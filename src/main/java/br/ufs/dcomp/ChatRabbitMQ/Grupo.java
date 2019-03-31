@@ -8,78 +8,96 @@ public class Grupo{
     
     public Grupo(Chat chat){
         this.chat = chat;
-        this.nome = "sem_grupo";
+        this.nome = "";
     }
     public void setNome(String nome){
         this.nome = nome;
+        chat.setDestinatario(nome);
     }
     public String getNome(){
         return (this.nome);
     }
+    public String getNomeEnv(){
+        char sinal = this.nome.charAt(0);
+        return (sinal+"Env"+this.nome.substring(1));
+    }
     public void povoar(HashMap comandos){
         comandos.put("!newGroup", new NewGroup());
         comandos.put("!addUser", new AddUser());       
-        comandos.put("!delFromGroup",  new RemoveUserGroup());
-        comandos.put("!removeGroup", new DeleteGroup());
+        comandos.put("!delFromGroup",  new DelFromGroup());
+        comandos.put("!removeGroup", new RemoveGroup());
         comandos.put("#", new SelectGroup());
         
     }
     class NewGroup implements iAcao{
         public void execute() throws Exception{
-        /*exemplo: !createGroup nome_do_grupo*/
+        /*exemplo: !newGroup nome_do_grupo*/
             String[] s = chat.getMensagem().split(" ");
-            setNome(s[1]);
-            chat.getChannel().exchangeDeclare("#"+getNome(), "fanout");
-            chat.getChannel().queueBind("@"+chat.getUsuario().getNome(), "#" + Grupo.this.getNome(), "");
+            setNome("#"+s[1]);
+            
+            chat.getChannel().exchangeDeclare(getNome(), "fanout");
+            chat.getChannel().queueBind(chat.getUsuario().getNome(), Grupo.this.getNome(), "");
+           
+            chat.getChannelArq().exchangeDeclare(getNomeEnv(), "fanout");
+            chat.getChannelArq().queueBind(chat.getUsuario().getNomeEnv(), Grupo.this.getNomeEnv(), "");
+            
             System.out.println("CreateGroup");
         }
     }
     class AddUser implements iAcao{
+        // exemplo: !addUser nome_usuario nome_grupo
         public void execute() throws Exception{
             String[] s = chat.getMensagem().split(" ");
+            String usuario = s[1];
+            String grupo = s[2];
+            if(("@"+usuario).equals(chat.getUsuario().getNome())){
+                Grupo.this.setNome("#"+grupo);
+            }
+            chat.getChannel().queueBind("@"+usuario, "#"+grupo, "");
+            chat.getChannelArq().queueBind("@Env"+usuario, "#Env"+grupo, "");//Adcionar o usuário a um grupo
             
-            chat.setDestinatario("@"+s[1]);
-            setNome(s[2]);
-            chat.getChannel().queueBind(chat.getDestinatario(), "#" + Grupo.this.getNome(), "");//Adcionar o usuário a um grupo
-            System.out.println(chat.getDestinatario()+ " adcionando ao grupo " + Grupo.this.getNome());
+            System.out.println(chat.getDestinatarioEnv()+ " adcionando ao grupo " + Grupo.this.getNome());
             
         }
     }
-    class RemoveUserGroup implements iAcao{
+    class DelFromGroup implements iAcao{
         public void execute() throws Exception{
             String[] s = chat.getMensagem().split(" ");
-            String destinatario = s[1];
-            String nome_do_grupo = s[2];
-            chat.getChannel().queueUnbind("@"+destinatario, "#"+nome_do_grupo, "");
-            // chat.getChannel().queueUnbind("@"+chat.getUsuario().getNome(), "#"+getNome(), "");
-            System.out.println("usuario: "+destinatario);
+            String usuario = s[1];
+            String grupo = s[2];
+            if(("@"+usuario).equals(chat.getUsuario().getNome())){
+                Grupo.this.setNome("");
+            }
+            chat.getChannel().queueUnbind("@"+usuario, "#"+grupo, "");
+            chat.getChannelArq().queueUnbind("@Env"+usuario, "#Env"+grupo, "");
+            
+            System.out.println("usuario: "+usuario);
             System.out.print(">>");    
         }
     }
-    class DeleteGroup implements iAcao{
+    class RemoveGroup implements iAcao{
         public void execute() throws Exception{
             String[] s = chat.getMensagem().split(" ");
-            String nome_do_grupo = s[1];
-            chat.getChannel().exchangeDelete( "#"+nome_do_grupo);
-            // chat.getChannel().queueUnbind("@"+chat.getUsuario().getNome(), "#"+getNome(), "");
-            System.out.println("grupo: "+nome_do_grupo);
-            System.out.print(">>");   
+            String grupo = s[1];
+            if(("#"+grupo).equals(Grupo.this.getNome())){
+                Grupo.this.setNome("");
+            }
+            
+            chat.getChannel().exchangeDelete( "#"+grupo);
+            chat.getChannelArq().exchangeDelete( "#Env"+grupo);
+            
+            System.out.println("grupo: "+grupo);
+            System.out.println(">>");   
         }
     }
     class SelectGroup implements iAcao{
         public void execute() throws Exception{
-            chat.setDestinatario(chat.getMensagem());
-            setNome(chat.getDestinatario().substring(1));
-            chat.getChannel().queueBind("@"+chat.getUsuario().getNome(), "#" + Grupo.this.getNome(), "");
+            System.out.println(chat.getMensagem());
+            setNome(chat.getMensagem());
+            
+            chat.getChannel().queueBind(chat.getUsuario().getNome(), Grupo.this.getNome(), "");
+            chat.getChannelArq().queueBind(chat.getUsuario().getNomeEnv(), Grupo.this.getNomeEnv(), "");
         }
-    // class EnviarGrupo implemnts iAcao{
-    //     public void execute() throws Exception{
-    //         String nome_grupo1 = chat.getDestinatario();
-    //         setNome(nome_do_grupo1.substring(1));
-    //         System.out.println("usuario: "+"@"+chat.getUsuario().getNome());
-    //         System.out.println("grupo: "+nome_do_grupo);
-    //         chat.getChannel().queueBind("@"+chat.getUsuario().getNome(), nome_do_grupo1, "");
-    //     }
-    // } Acho que nao é aqui ;-)
     }
+    
 }

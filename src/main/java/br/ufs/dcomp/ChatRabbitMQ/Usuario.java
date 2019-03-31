@@ -19,6 +19,10 @@ public class Usuario{
     public String getNome(){
         return (this.nome);
     }
+    public String getNomeEnv(){
+        char sinal = this.nome.charAt(0);
+        return (sinal+"Env"+this.nome.substring(1));
+    }
     class AddUser implements iAcao{
         public void execute() throws Exception{
             String destinatario = chat.getMensagem();

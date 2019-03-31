@@ -15,9 +15,10 @@ O envio de arquivos para um grupo deve ser semelhante:
 Logo depois de chamado o comando "upload", deve ser exibida a mensagem (não bloqueante) ```Enviando "<nome-do-arquivo>" para <destinatário>```. Exemplo:
 
 ```
+@marciocosta>> !upload /home/ubuntu/workspace/ChatRabbitMQ/etapa3.md
 @marciocosta>> !upload /home/tarcisio/aula1.pdf
 Enviando "/home/tarcisio/aula1.pdf" para @marciocosta.
-@marciocosta>>
+@marciocosta>> 
 ```
 Observe também que no exemplo acima, logo depois de exibida a mensagem ```Enviando "/home/tarcisio/aula1.pdf" para @marciocosta``` o chat volta instantaneamente para o prompt (ex: "@marciocosta>> "), ou seja, o processo de envio de arquivos com o comando "upload" deve ser feita em background (sem bloquear o chat). Para que isso seja possível, é necessário criar uma thread no chat emissor para cada novo upload. Também pode ser necessário criar uma fila específica para o recebimento de arquivos para cada usuário. Com isso, cada usuário teria uma fila para o recebimento de mensagens de texto e outra para o recebimento de arquivos.
 

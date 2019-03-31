@@ -1,22 +1,35 @@
 package br.ufs.dcomp.ChatRabbitMQ;
 
-import com.rabbitmq.amq.*;
 import com.rabbitmq.client.*;
 import java.util.Scanner;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import com.google.protobuf.ByteString;
+import java.io.FileOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.BufferedOutputStream;
 
 public class Chat{
 
     private String destinatario;
+    private String destinatarioEnv;
     private Usuario usuario;
     private Grupo grupo;
     private String mensagem;
     private Channel channel;
+    private Channel channelArq;
     private Consumer consumer;
+    private Consumer consumerArq;
+    
     private Connection connection;
     private ConnectionFactory factory;
+    
+    private Connection connectionArq;
+    private ConnectionFactory factoryArq;
+    
     private HashMap<String, iAcao>comandos;
     
     private Scanner entrada;
@@ -31,7 +44,13 @@ public class Chat{
         this.factory = new ConnectionFactory();
         this.factory.setUri("amqp://"+usuario+":"+senha+"@"+proxy);
         this.connection = this.factory.newConnection();
-        this.channel = this.connection.createChannel();//seria por aqui acho eu pra fazer a mudanca do exchange
+        
+        // this.factoryArq = new ConnectionFactory();
+        // this.factoryArq.setUri("amqp://"+usuario+":"+senha+"@"+proxy);
+        // this.connectionArq = this.factoryArq.newConnection();
+        
+        this.channel = this.connection.createChannel();
+        this.channelArq = this.connection.createChannel();
         
         this.mensagem = "";
         
@@ -51,17 +70,24 @@ public class Chat{
         
     }
     public void rodar() throws Exception{
-        while (true) {          
+        //this.channel.close();
+        //this.channelArq.close();
+        while (true) {
+            //this.channel = this.connection.createChannel();
+            //this.channelArq = this.connection.createChannel();
+            
             //imprimir na tela ex: usuárioDestino >>   
             System.out.print(this.getDestinatario()+">> ");
             this.mensagem = entrada.nextLine();
             String chave = Utilitario.getComando(mensagem);
             iAcao acao = comandos.get(chave);
-            if(acao != null)
+            if(acao != null){
                 acao.execute();
-            else{
+            }else{
                 System.out.println("comando inválido, por faver tente novamente:");
             }
+            //this.channel.close();
+            //this.channelArq.close();
         }
         
     }
@@ -70,12 +96,18 @@ public class Chat{
         System.out.println("Digite um nome de usuário");
         System.out.print("User: ");
         //acrescenta o @ na frente do usuário
-        this.usuario.setNome(entrada.nextLine());
+        String nome = entrada.nextLine();
+        this.usuario.setNome("@"+nome);
           
         System.out.println("Criando fila para acesso ....");
-        this.channel.queueDeclare("@"+usuario.getNome()/*QUEUE_NAME*/, false,   false,     false,       null);
+        this.channel.queueDeclare(usuario.getNome()/*QUEUE_NAME*/, false,   false,     false,       null);
+        this.channelArq.queueDeclare(usuario.getNomeEnv()/*QUEUE_NAME*/, false,   false,     false,       null);
         this.consumer = new Consumidor(this);
-        this.channel.basicConsume("@"+usuario.getNome(), true, this.consumer);
+        this.consumerArq = new ConsumidorArq(channelArq);
+        
+        this.channel.basicConsume(usuario.getNome(), true, this.consumer);
+        this.channelArq.basicConsume(usuario.getNomeEnv(), true, this.consumerArq);
+                
         
     }
     public void pedirDestinatario(){
@@ -83,12 +115,13 @@ public class Chat{
         System.out.print(">> ");
         
         this.mensagem = entrada.nextLine() ;
-        String chave = Utilitario.getComando(mensagem);
+        String chave = Utilitario.getComando(this.mensagem);
         while(!chave.equals("@") && !chave.equals("#")){
             System.out.println("Usuário Incorreto!");
             System.out.println("Selecione um usuário para conversar, digite @ antes do nome:" );
-            System.out.print(">>");
+            System.out.print(">> ");
             this.mensagem = entrada.nextLine();
+            chave = Utilitario.getComando(this.mensagem);
         }
         this.destinatario = this.mensagem;
         try{  this.comandos.get(chave).execute(); }
@@ -98,8 +131,13 @@ public class Chat{
         this.destinatario = destinatario;
     }
     public String getDestinatario(){ return this.destinatario; }
+    public String getDestinatarioEnv(){
+        char sinal = this.destinatario.charAt(0);
+        return (sinal+"Env"+this.destinatario.substring(1));
+    }
     public String getMensagem(){ return this.mensagem; }
     public Channel getChannel(){ return this.channel; }
+    public Channel getChannelArq(){ return this.channelArq; }
     public Usuario getUsuario(){return this.usuario; }
     
     private void povoar(HashMap comandos){
@@ -110,19 +148,44 @@ public class Chat{
                 message.put("emissor", usuario.getNome());
                 message.put("data", Utilitario.getData());
                 message.put("hora", Utilitario.getHora());
-                message.put("grupo", grupo.getNome());
+                message.put("grupo", ""+grupo.getNome());
                 message.put("conteudo", ByteString.copyFromUtf8(getMensagem()));
+                message.put("nome_arq", "");
+                message.put("tipo_arq", "");
                 
                 char sinal = destinatario.charAt(0);
                 String grupo_destino = (sinal == '#')?destinatario:"";
                 String usuario_destino = (sinal == '@')?destinatario:"";
                 
-             //   channel.basicPublish("", destinatario, null, Utilitario.serializar(message)); //esse é seu codigo
-                channel.basicPublish(grupo_destino, usuario_destino, null,  Utilitario.serializar(message)); /*testei e funcionou mas esta replicando 
-acho que o problema pode estar na chamada da concatenaçao ou em outro metodo, as vezes nao vai para todos acho que a pode esta havendo fila
-a menos ou algo no canal */ 
-                
+                channel.basicPublish(grupo_destino, usuario_destino, null,  Utilitario.serializar(message)); 
                 //channel.basicPublish("", destinatario, null, texto.getBytes("UTF-8"));
+            }
+        });
+        comandos.put("!upload", new iAcao(){
+            public void execute()throws Exception{
+                (new Thread(){
+                    public void run(){
+                        try{
+                            String caminho_arq = getMensagem().split(" ")[1];
+                            HashMap<String,Object> message = new HashMap<String,Object>();
+                            message.put("receptor", getDestinatario().substring(1));
+                            message.put("emissor", usuario.getNome());
+                            message.put("data", Utilitario.getData());
+                            message.put("hora", Utilitario.getHora());
+                            message.put("grupo", grupo.getNome());
+                            message.put("nome_arq", Utilitario.getNomeArq(caminho_arq));
+                            message.put("tipo_arq", Utilitario.getNomeArq(caminho_arq));
+                            message.put("conteudo", ByteString.copyFrom(
+                                Utilitario.stringToByteUpload(caminho_arq)
+                            ));
+                            char sinal = getDestinatarioEnv().charAt(0);
+                            String grupo_destino = (sinal == '#')?getDestinatarioEnv():"";
+                            String usuario_destino = (sinal == '@')?getDestinatarioEnv():"";
+
+                            channelArq.basicPublish(grupo_destino, usuario_destino, null,  Utilitario.serializar(message));
+                        }catch(Exception e){System.out.println(e);}
+                    }
+                }).run();
             }
         });
     }
@@ -130,23 +193,48 @@ a menos ou algo no canal */
         HashMap<String,String> message = Utilitario.desserializar(body);
         //Exemplo de saida
         //(26/03/2019 às 01:12:57) NomeDoEmissor diz para NomeDoReceptor: oi
+        String receptor = (message.get("grupo") == null) ? (message.get("receptor")) : (message.get("grupo"));
         System.out.println(
             "\n("+message.get("data")+" às "
             +message.get("hora")+") "
             +message.get("emissor")+" diz para "
-            +message.get("receptor")+": "
+            +receptor+": "
             +message.get("corpoconteudo")
         );
         if(getDestinatario() != null)
             System.out.print(getDestinatario());
-        else
-            System.out.println("destinatario nulo");
         System.out.print(">>");
         
     }
+    class ConsumidorArq extends DefaultConsumer{
+        public ConsumidorArq(Channel channel){
+            super(channel);
+        }
+        //@Override
+        public void handleDelivery
+        (
+        String consumerTag,
+        Envelope envelope, 
+        AMQP.BasicProperties properties, 
+        byte[] body
+        )
+        throws IOException {
+            HashMap<String,String> message = Utilitario.desserializar(body);
+            //Exemplo de saida
+            //(26/03/2019 às 01:12:57) NomeDoEmissor diz para NomeDoReceptor: oi
+            System.out.println(
+                "\n("+message.get("data")+" às "
+                +message.get("hora")+") "
+                +message.get("emissor")+" envia arquivo '"
+                +message.get("nome_arq")+"' para "
+                +message.get("receptor")+": "
+            );
+            
+            FileOutputStream file = new FileOutputStream(new File("/home/ubuntu/workspace/Chat/correios/"+message.get("nome_arq")));
+            BufferedOutputStream b = new BufferedOutputStream(file);
+            b.write(body);
+            b.close();
+        }
+    
+    }
 }
-
-
-
-
-
