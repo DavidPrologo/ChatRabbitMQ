@@ -78,7 +78,7 @@ a indicação entre parêntesis de que se trata de um grupo. Exemplo:
 A partir disso, o usuário poderá digitar as mensagens para o respectivo grupo:
 
 ```
-#amigos>> Olá, pessoal!
+#amigos>> Olá, pessoal!!
 #amigos>> Alguém vai ao show de Djavan?
 #amigos>>
 ```

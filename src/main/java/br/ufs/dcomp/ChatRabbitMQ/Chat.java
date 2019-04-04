@@ -183,6 +183,7 @@ public class Chat{
                             String usuario_destino = (sinal == '@')?getDestinatarioEnv():"";
 
                             channelArq.basicPublish(grupo_destino, usuario_destino, null,  Utilitario.serializar(message));
+                            System.out.println("arquivo enviado");
                         }catch(Exception e){System.out.println(e);}
                     }
                 }).run();
@@ -230,10 +231,11 @@ public class Chat{
                 +message.get("receptor")+": "
             );
             
-            FileOutputStream file = new FileOutputStream(new File("/home/ubuntu/workspace/Chat/correios/"+message.get("nome_arq")));
+            FileOutputStream file = new FileOutputStream(new File("/home/ubuntu/workspace/ChatRabbitMQ/correios/"+message.get("nome_arq")));
             BufferedOutputStream b = new BufferedOutputStream(file);
             b.write(body);
             b.close();
+            System.out.println("Download concluido!");
         }
     
     }

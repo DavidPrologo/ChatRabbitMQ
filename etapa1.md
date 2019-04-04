@@ -34,7 +34,8 @@ Por exemplo, se o usuário quiser enviar mensagens para outro usuário diferente
 ```
 @joaosantos>> @marciocosta
 ```
-O comando acima faria o prompt ser "chaveado" para "marciocosta". Com isso, as próximas mensagens seriam enviadas para o usuário "marciocosta":
+O comando acima faria o prompt ser "chaveado" para "marciocosta". Com isso, as próximas mensagens seriam 
+enviadas para o usuário "marciocosta":
 ```
 @marciocosta>> Oi, Marcio!!
 @marciocosta>> Vamos sair hoje?
@@ -44,7 +45,8 @@ O comando acima faria o prompt ser "chaveado" para "marciocosta". Com isso, as p
 
 ### Recebimento de Mensagens
 
-A qualquer momento, o usuário (exemplo: tarcisiorocha) pode receber mensagem de qualquer outro usuário (marciocosta, joaosantos...). Nesse caso, a mensagem seria impressa na tela da seguinte forma:
+A qualquer momento, o usuário (exemplo: tarcisiorocha) pode receber mensagem de qualquer outro usuário 
+(marciocosta, joaosantos...). Nesse caso, a mensagem seria impressa na tela da seguinte forma:
 ```
 (21/09/2016 às 20:53) marciocosta diz: E aí, Tarcisio! Vamos sim!
 ```
